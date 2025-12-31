@@ -25,3 +25,5 @@ Requirements:
 - consider us having a like / watched tv show system too
 - create a repo, can use github cli to do that
 - code should be well organised, easy to maintain, read by human / llm and keep best practices
+- should use bun to spin up create-next-app
+- should use mydramalist as a source of info too
