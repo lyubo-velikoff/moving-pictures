@@ -6,17 +6,39 @@ import {
   Footer,
 } from "@/components/sections";
 import {
-  MOCK_SHOW,
-  MOCK_CREDITS,
-  MOCK_SEASONS,
-} from "@/lib/mock-data";
+  getShow,
+  getShowCredits,
+  getShowEpisodes,
+} from "@/lib/shows";
+import { getFeaturedShow } from "@/config";
 
-export default function Home() {
-  // For now, using mock data
-  // TODO: Replace with real data from API when TMDB token is configured
-  const show = MOCK_SHOW;
-  const credits = MOCK_CREDITS;
-  const seasons = MOCK_SEASONS;
+export const revalidate = 3600; // Revalidate every hour
+
+export default async function Home() {
+  const featuredShow = getFeaturedShow();
+
+  if (!featuredShow) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-text-secondary">No featured show configured</p>
+      </main>
+    );
+  }
+
+  // Fetch all data in parallel
+  const [show, credits, episodes] = await Promise.all([
+    getShow(featuredShow.slug),
+    getShowCredits(featuredShow.slug),
+    getShowEpisodes(featuredShow.slug),
+  ]);
+
+  if (!show) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-text-secondary">Failed to load show data</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen">
@@ -27,10 +49,10 @@ export default function Home() {
       <RatingsSection ratings={show.ratings} />
 
       {/* Cast Section */}
-      <CastSection cast={credits.cast} />
+      {credits && <CastSection cast={credits.cast} />}
 
       {/* Episodes Section */}
-      <EpisodesSection seasons={seasons} />
+      {episodes && episodes.length > 0 && <EpisodesSection seasons={episodes} />}
 
       {/* Footer */}
       <Footer />

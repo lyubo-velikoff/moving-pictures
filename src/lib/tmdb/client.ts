@@ -11,26 +11,40 @@ import type {
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
 
 class TMDBClient {
-  private apiToken: string;
+  private apiKey: string;
+  private isV4Token: boolean;
 
   constructor() {
     const token = process.env.TMDB_API_TOKEN;
     if (!token) {
       throw new Error("TMDB_API_TOKEN environment variable is not set");
     }
-    this.apiToken = token;
+    this.apiKey = token;
+    // v4 tokens are JWTs starting with "eyJ" and are 200+ chars
+    // v3 keys are short alphanumeric strings (32 chars)
+    this.isV4Token = token.startsWith("eyJ") && token.length > 100;
   }
 
   private async fetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${TMDB_API_BASE_URL}${endpoint}`;
+    // For v3 API keys, append as query parameter
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const url = this.isV4Token
+      ? `${TMDB_API_BASE_URL}${endpoint}`
+      : `${TMDB_API_BASE_URL}${endpoint}${separator}api_key=${this.apiKey}`;
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    };
+
+    // Only add Bearer token for v4 tokens
+    if (this.isV4Token) {
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${this.apiKey}`;
+    }
 
     const response = await fetch(url, {
       ...options,
-      headers: {
-        Authorization: `Bearer ${this.apiToken}`,
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
