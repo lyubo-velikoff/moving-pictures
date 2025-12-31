@@ -1,5 +1,4 @@
 import { getTMDBClient, transformShow, transformCredits, transformSeason, transformVideos, transformImages, getTrailerFromVideos } from "@/lib/tmdb";
-import { getMDLRating } from "@/lib/mdl";
 import { getShowBySlug, getShowByTmdbId, SHOWS } from "@/config";
 import type { Show, Credits, Season, Video, ShowImages, ShowRatings } from "@/types";
 
@@ -14,13 +13,11 @@ export async function getShow(slugOrId: string | number): Promise<Show | null> {
 
   try {
     const tmdb = getTMDBClient();
-    const [tmdbShow, mdlRating] = await Promise.all([
-      tmdb.getShow(showConfig.tmdbId),
-      showConfig.mdlSlug ? getMDLRating(showConfig.mdlSlug) : null,
-    ]);
-
+    const tmdbShow = await tmdb.getShow(showConfig.tmdbId);
     const show = transformShow(tmdbShow);
 
+    // Build ratings from TMDB live data + static cached ratings for MDL/IMDb
+    // (MDL is Cloudflare-protected, IMDb requires auth - so we use static values)
     const ratings: ShowRatings = {
       tmdb: {
         score: tmdbShow.vote_average,
@@ -28,13 +25,18 @@ export async function getShow(slugOrId: string | number): Promise<Show | null> {
         voteCount: tmdbShow.vote_count,
         source: "tmdb",
       },
-      mdl: mdlRating ? {
-        score: mdlRating.score,
-        maxScore: mdlRating.maxScore,
-        voteCount: mdlRating.voteCount,
+      mdl: showConfig.staticRatings?.mdl ? {
+        score: showConfig.staticRatings.mdl.score,
+        maxScore: showConfig.staticRatings.mdl.maxScore,
+        voteCount: showConfig.staticRatings.mdl.voteCount,
         source: "mydramalist",
       } : null,
-      imdb: null, // Will be populated if we have IMDb data
+      imdb: showConfig.staticRatings?.imdb ? {
+        score: showConfig.staticRatings.imdb.score,
+        maxScore: showConfig.staticRatings.imdb.maxScore,
+        voteCount: showConfig.staticRatings.imdb.voteCount,
+        source: "imdb",
+      } : null,
     };
 
     return {

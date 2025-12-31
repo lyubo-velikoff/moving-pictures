@@ -1,3 +1,10 @@
+export interface StaticRating {
+  score: number;
+  maxScore: number;
+  voteCount: number;
+  rank?: number;
+}
+
 export interface ShowConfig {
   slug: string;
   tmdbId: number;
@@ -7,6 +14,12 @@ export interface ShowConfig {
   originalName: string;
   trailerUrl?: string;
   featured: boolean;
+  // Static ratings (MDL is Cloudflare-protected, IMDb requires auth)
+  // These are cached values that can be updated periodically
+  staticRatings?: {
+    mdl?: StaticRating;
+    imdb?: StaticRating;
+  };
 }
 
 export const SHOWS: ShowConfig[] = [
@@ -19,6 +32,20 @@ export const SHOWS: ShowConfig[] = [
     originalName: "双轨",
     trailerUrl: "https://www.iq.com/short/speed-and-love-10btkbcvqb8",
     featured: true,
+    // Static ratings from MDL and IMDb (as of Dec 2025)
+    staticRatings: {
+      mdl: {
+        score: 8.5,
+        maxScore: 10,
+        voteCount: 7146,
+        rank: 468,
+      },
+      imdb: {
+        score: 8.2,
+        maxScore: 10,
+        voteCount: 892,
+      },
+    },
   },
 ];
 
